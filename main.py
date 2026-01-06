@@ -15,9 +15,6 @@ def init_game(nickname):
     buff = random.choice(STATS)
     debuff = random.choice([s for s in STATS if s != buff])
 
-    base[buff] = math.floor(base[buff] * 1.5)
-    base[debuff] = max(1, math.floor(base[debuff] * 0.5))
-
     st.session_state.nickname = nickname
     st.session_state.buff = buff
     st.session_state.debuff = debuff
@@ -29,35 +26,66 @@ def init_game(nickname):
     st.session_state.choices = []
 
 # -------------------------
+# 나이별 선택지 풀
+# -------------------------
+AGE_POOLS = {
+    "child": [
+        ("뛰어논다", {"체력": 1, "민첩": 1}),
+        ("블록 놀이", {"지능": 2}),
+        ("친구와 논다", {"행운": 1}),
+    ],
+    "kid": [
+        ("체육 수업", {"체력": 2}),
+        ("독서 습관", {"지능": 2}),
+        ("운동 연습", {"근력": 1}),
+    ],
+    "teen": [
+        ("시험 공부", {"지능": 3}),
+        ("경쟁에 도전", {"근력": 2}),
+        ("동아리 활동", {"민첩": 2}),
+    ],
+    "adult": [
+        ("야근", {"체력": -1, "근력": 2}),
+        ("자기계발", {"지능": 2}),
+        ("인맥 관리", {"행운": 2}),
+    ]
+}
+
+def get_age_pool(age):
+    if age <= 5:
+        return AGE_POOLS["child"]
+    elif age <= 12:
+        return AGE_POOLS["kid"]
+    elif age <= 18:
+        return AGE_POOLS["teen"]
+    else:
+        return AGE_POOLS["adult"]
+
+# -------------------------
 # 선택지 생성
 # -------------------------
 def generate_choices():
+    pool = get_age_pool(st.session_state.age)
     current = st.session_state.current
     potential = st.session_state.potential
 
     choices = []
 
-    free_pool = [
-        ("운동을 한다", {"체력": 2}),
-        ("공부를 한다", {"지능": 2}),
-        ("산책을 한다", {"민첩": 1}),
-        ("친구와 논다", {"행운": 1}),
-        ("힘든 일을 한다", {"근력": 2}),
-    ]
-
-    for text, effect in random.sample(free_pool, 3):
+    # 조건 없는 선택지 3개
+    for text, effect in random.sample(pool, min(3, len(pool))):
         choices.append({
             "text": text,
             "effect": effect
         })
 
+    # 조건 있는 선택지 2개
     for _ in range(2):
         stat = random.choice(STATS)
         max_possible = potential[stat]
         req = random.randint(max(1, max_possible - 2), max_possible)
 
         choices.append({
-            "text": f"{stat} 시험에 도전한다",
+            "text": f"{stat} 도전",
             "require": {stat: req},
             "effect": {stat: 2}
         })
@@ -65,22 +93,25 @@ def generate_choices():
     st.session_state.choices = choices
 
 # -------------------------
-# 선택 처리
+# 선택 적용
 # -------------------------
 def apply_choice(index):
     choice = st.session_state.choices[index]
 
     for stat, val in choice["effect"].items():
-        st.session_state.current[stat] += val
+        multiplier = 1.0
+        if stat == st.session_state.buff:
+            multiplier = 1.5
+        elif stat == st.session_state.debuff:
+            multiplier = 0.5
 
-    # potential 갱신
-    for c in st.session_state.choices:
-        for stat, val in c["effect"].items():
-            possible = st.session_state.current[stat] + val
-            st.session_state.potential[stat] = max(
-                st.session_state.potential[stat],
-                possible
-            )
+        applied = math.floor(val * multiplier)
+        st.session_state.current[stat] += applied
+
+        st.session_state.potential[stat] = max(
+            st.session_state.potential[stat],
+            st.session_state.current[stat]
+        )
 
     st.session_state.choice_count += 1
     if st.session_state.choice_count % 5 == 0:
@@ -93,7 +124,6 @@ def apply_choice(index):
 # -------------------------
 st.title("🎲 TRPG 인생 시뮬레이터")
 
-# 시작 화면
 if "current" not in st.session_state:
     nickname = st.text_input("닉네임을 입력하세요")
 
@@ -102,38 +132,9 @@ if "current" not in st.session_state:
         generate_choices()
         st.rerun()
 
-# 게임 화면
 else:
     col1, col2 = st.columns([3, 1])
 
     with col2:
-        st.subheader(f"🧑 닉네임: {st.session_state.nickname}")
-        st.write(f"🎁 재능: **{st.session_state.buff} 강화 / {st.session_state.debuff} 약화**")
-        st.subheader(f"🎂 나이: {st.session_state.age}살")
-        st.markdown("### 📊 스탯")
-        for s, v in st.session_state.current.items():
-            st.write(f"{s}: {v}")
-
-    with col1:
-        st.markdown("### 선택지")
-        for i, c in enumerate(st.session_state.choices):
-            label = c["text"]
-
-            # 효과 표시
-            effect_text = ", ".join(
-                [f"{k} +{v}" for k, v in c["effect"].items()]
-            )
-            label += f"  ➜  ({effect_text})"
-
-            disabled = False
-            if "require" in c:
-                stat = list(c["require"].keys())[0]
-                need = c["require"][stat]
-                label += f" [필요 {stat} ≥ {need}]"
-
-                if st.session_state.current[stat] < need:
-                    disabled = True
-
-            if st.button(label, key=i, disabled=disabled):
-                apply_choice(i)
-                st.rerun()
+        st.subheader(f"🧑 {st.session_state.nickname}")
+        st.write(f"🎁 재능: **{st.session_state.buff} +50% / {st.se_**
