@@ -33,7 +33,7 @@ with tab_login:
             st.session_state.logged_in = True
             st.session_state.login_type = "member"
             st.session_state.nickname = st.session_state.users[uid]["nickname"]
-            st.switch_page("pages/2_🎮_인게임.py")
+            st.switch_page("pages/02_game.py")
         else:
             st.error("아이디 또는 비밀번호가 틀렸습니다.")
 
@@ -71,4 +71,4 @@ with tab_guest:
             st.session_state.logged_in = True
             st.session_state.login_type = "guest"
             st.session_state.nickname = nick
-            st.switch_page("pages/2_🎮_인게임.py")
+            st.switch_page("pages/02_game.py")
