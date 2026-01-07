@@ -14,7 +14,7 @@ if "logged_in" not in st.session_state:
 
 # 이미 로그인된 경우 인게임으로 이동
 if st.session_state.logged_in:
-    st.switch_page("pages/2_🎮_인게임.py")
+    st.switch_page("pages/02_game.py")
 
 st.title("🎲 TRPG 인생 시뮬레이터")
 st.subheader("로그인")
